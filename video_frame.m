@@ -1,25 +1,31 @@
-function outputVideoObject = video_frame(inputVideoObject, interp, max_iter)
+% Generates the input video taking every 4th sample; interpolates it by
+% factor of 2
+function outputVideoObject = video_frame(originalVideoObject, interp, max_iter)
 
-originalNumberOfFrames = inputVideoObject.NumberOfFrames;
-originalFrameRate = inputVideoObject.FrameRate;
-vidHeight = inputVideoObject.Height;
-vidWidth = inputVideoObject.Width;
+%% reading video and generating pixel maps
+originalNumberOfFrames = originalVideoObject.NumberOfFrames;
+originalFrameRate = originalVideoObject.FrameRate;
+vidHeight = originalVideoObject.Height;
+vidWidth = originalVideoObject.Width;
 
-newNumberOfFrames = originalNumberOfFrames*interp;
+inputNumberOfFrames = floor(originalNumberOfFrames/4);
+outputNumberOfFrames = inputNumberOfFrames*interp;
 
-inputPixelMap = zeros(vidHeight, vidWidth, originalNumberOfFrames);
-outputPixelMap = zeros(vidHeight, vidWidth, newNumberOfFrames);
+%originalPixelMap = zeros(vidHeight, vidWidth, originalNumberOfFrames);
+inputPixelMap = zeros(vidHeight, vidWidth, inputNumberOfFrames);
+outputPixelMap = zeros(vidHeight, vidWidth, outputNumberOfFrames);
 
 bandwidth = 0.8;        % This needs to be a number between 0.5 to 1
-h = waitbar(0,'Reading input video')
-for frameNumber=1:originalNumberOfFrames
-    inputPixelMap(:,:,frameNumber) = rgb2gray(double(read(inputVideoObject, 50))/255);
+h = waitbar(0,'Reading input video');
+for frameNumber=1:inputNumberOfFrames
+    inputPixelMap(:,:,frameNumber) = rgb2gray(double(read(originalVideoObject, 4*frameNumber))/255);
     % TODO: see if any need for converting to grayscale
-    waitbar(frameNumber/originalNumberOfFrames);
+    waitbar(frameNumber/inputNumberOfFrames);
 end
 close(h)
 
-h = waitbar(0,'Interpolating Video Signal')
+%% Preforming the PG interpolation
+h = waitbar(0,'Interpolating Video Signal');
 for i=1:vidHeight
     for j=1:vidWidth
         outputPixelMap(i,j,:) = pg_1d(inputPixelMap(i,j,:), bandwidth, interp, max_iter);
@@ -28,36 +34,30 @@ for i=1:vidHeight
 end
 close(h)
 
-outputVideoObject = VideoWriter('new video.mov');
-outputVideoObject.FrameRate = originalFrameRate*interp;
-% 
-% outputVideoObjectBackup = VideoWriter('new video 2.mov');
-% outputVideoObjectBackup.FrameRate = originalFrameRate*interp;
-% % open(outputVideoObjectBackup);
+%% storing the input video
+inputVideoObject = VideoWriter('inputvideo.mov');
+inputVideoObject.FrameRate = originalFrameRate/4;
 
-outputPixelMapTemp = outputPixelMap;
+open(inputVideoObject);
+for frameNumber=1:inputNumberOfFrames
+    %Convert Image to movie Frame
+    frame = inputPixelMap(:,:,frameNumber);
+    writeVideo(inputVideoObject, im2uint8(frame));
+end
+close(inputVideoObject);
+
+%% storing the output video
+% restricting pixel values between 0 and 1
 outputPixelMap(outputPixelMap > 1) = 1;
 outputPixelMap(outputPixelMap < 0) = 0;
-% for frameNumber=1:newNumberOfFrames    
-%     frame = outputPixelMap(:,:,frameNumber)*255;
-%     writeVideo(outputVideoObjectBackup, im2uint8(frame));
-% end
-% close(outputVideoObjectBackup)
 
+outputVideoObject = VideoWriter('outputvideo.mov');
+outputVideoObject.FrameRate = originalFrameRate*interp/4;
 open(outputVideoObject);
-%outputPixelMapTemp = outputPixelMap;
-%outputPixelMap(outputPixelMap > 1) = 1;
-%outputPixelMap(outputPixelMap < 0) = 0;
     
-for frameNumber=1:newNumberOfFrames
+for frameNumber=1:outputNumberOfFrames
     %Convert Image to movie Frame
-    
     frame = outputPixelMap(:,:,frameNumber);
     writeVideo(outputVideoObject, im2uint8(frame));
-    
-    
 end
-temp2 =2;
 close(outputVideoObject);
-
-temp1 = 1;
