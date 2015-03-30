@@ -1,0 +1,9 @@
+% G = zeros(1,1000);
+% G(1:500) = 1;
+% g = ifft(G);
+% f = g(1:2:end);
+% x1 = linspace(0,10,100);
+% g1 = sin(2*pi*x1);
+% f1 = g1(1:2:end);
+vid = VideoReader('SRE_smallvideo_to_use.mov');
+output_vid = video_frame(vid, 2, 20);
